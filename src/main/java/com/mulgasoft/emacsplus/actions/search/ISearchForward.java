@@ -8,19 +8,18 @@ import com.intellij.find.FindUtil;
 import com.intellij.find.editorHeaderActions.NextOccurrenceAction;
 import com.intellij.find.editorHeaderActions.RestorePreviousSettingsAction;
 import com.intellij.find.editorHeaderActions.VariantsCompletionAction;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.AnAction;
-import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.actionSystem.CustomShortcutSet;
-import com.intellij.openapi.actionSystem.KeyboardShortcut;
-import com.intellij.openapi.actionSystem.Shortcut;
+import com.intellij.ide.actions.SearchAgainAction;
+import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.command.CommandEvent;
+import com.intellij.openapi.command.CommandProcessor;
+import com.intellij.openapi.command.UndoConfirmationPolicy;
 import com.intellij.openapi.editor.CaretState;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.ScrollType;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.editor.VisualPosition;
 import com.intellij.openapi.editor.actionSystem.EditorAction;
+import com.intellij.openapi.editor.actionSystem.EditorActionHandler;
 import com.intellij.openapi.editor.actions.IncrementalFindAction.Handler;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.project.DumbAware;
@@ -423,9 +422,23 @@ public class ISearchForward extends EditorAction implements EmacsPlusBA {
         }
       }
 
+      EditorEx edex = (EditorEx) myEditor;
+      e = AnActionEvent.createFromDataContext("isearch", null, edex.getDataContext());
+
       action = ActionManager.getInstance().getAction("FindNext");
       action.update(e);
-      action.actionPerformed(e);
+      //action.actionPerformed(e);
+
+      final DataContext dataContext = e.getDataContext();
+      EditorActionHandler handler = ((SearchAgainAction) action).getHandler();
+      Runnable command = () -> handler.execute(myEditor, null, dataContext);
+
+      CommandProcessor.getInstance().executeCommand(myEditor.getProject(),
+              command,
+              "FindNext",
+              handler.getCommandGroupId(myEditor),
+              UndoConfirmationPolicy.DEFAULT,
+              myEditor.getDocument());
     }
   }
 
